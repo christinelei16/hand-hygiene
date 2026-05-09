@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Code 生成器 – 手部衛生</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --teal: #0097a7;
+    --teal-dark: #006978;
+    --amber: #f9a825;
+    --white: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: linear-gradient(135deg, #e0f7fa 0%, #fff8e1 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 12px 48px rgba(0,151,167,.2);
+    padding: 40px 36px;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+    animation: fadeUp .5s ease both;
+  }
+
+  .card-icon { font-size: 48px; margin-bottom: 8px; }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--teal-dark);
+    margin-bottom: 4px;
+  }
+  .subtitle { color: #888; font-size: 0.85rem; margin-bottom: 28px; }
+
+  .url-input-wrap {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e0f7fa;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    color: #333;
+    transition: border-color .2s;
+    min-width: 200px;
+  }
+  input[type="text"]:focus { border-color: var(--teal); }
+
+  .btn {
+    padding: 12px 22px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+
+  .btn-primary { background: var(--teal); color: white; }
+  .btn-amber   { background: var(--amber); color: #5d4037; }
+
+  /* QR output */
+  .qr-area {
+    background: #f9f9f9;
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 20px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    animation: fadeUp .4s ease both;
+  }
+  .qr-area.visible { display: flex; }
+
+  #qrcode canvas, #qrcode img {
+    border-radius: 8px;
+  }
+
+  .qr-label {
+    font-size: 0.78rem;
+    color: #aaa;
+    word-break: break-all;
+    max-width: 280px;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* Print area */
+  .print-card {
+    display: none;
+    background: white;
+    border: 2px dashed var(--teal);
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 16px;
+    text-align: center;
+    gap: 10px;
+    flex-direction: column;
+    align-items: center;
+  }
+  .print-card.visible { display: flex; }
+  .print-card h2 { font-size: 1.3rem; color: var(--teal-dark); font-weight: 900; }
+  .print-card p  { font-size: 0.75rem; color: #666; }
+
+  .instructions {
+    margin-top: 24px;
+    background: #e0f7fa;
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: left;
+  }
+  .instructions h3 { font-size: 0.9rem; color: var(--teal-dark); font-weight: 700; margin-bottom: 10px; }
+  .instructions ol { padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+  .instructions li { font-size: 0.8rem; color: #555; line-height: 1.5; }
+
+  @keyframes fadeUp {
+    from { transform: translateY(16px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .card { box-shadow: none; padding: 20px; }
+    .url-input-wrap, .btn-row, .instructions, .subtitle, .card-icon, h1+p { display: none; }
+    .print-card { display: flex !important; border: 2px solid var(--teal); }
+    .qr-area { display: flex !important; background: white; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-icon">📱</div>
+  <h1>QR Code 生成器</h1>
+  <p class="subtitle">手部衛生掃碼系統 · Hand Hygiene QR System</p>
+
+  <div class="url-input-wrap">
+    <input type="text" id="urlInput" placeholder="輸入網頁網址，例如：http://localhost/index.html" />
+    <button class="btn btn-primary" onclick="generateQR()">生成</button>
+  </div>
+
+  <div class="qr-area" id="qrArea">
+    <div id="qrcode"></div>
+    <div class="qr-label" id="qrLabel"></div>
+    <div class="btn-row">
+      <button class="btn btn-amber" onclick="downloadQR()">⬇️ 下載 QR Code</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ 列印</button>
+    </div>
+  </div>
+
+  <div class="print-card" id="printCard">
+    <h2>🙌 手部衛生 Hand Hygiene</h2>
+    <div id="printQR"></div>
+    <p>掃描以上QR Code 查閱手部衛生指引<br>Scan to view Hand Hygiene Guidelines</p>
+    <p style="color:#aaa;font-size:0.68rem;">仁伯爵綜合醫院 · 潔手推廣小組</p>
+  </div>
+
+  <div class="instructions">
+    <h3>📋 使用說明</h3>
+    <ol>
+      <li>在上方輸入 <code>index.html</code> 的完整網址（部署後的網址）</li>
+      <li>點擊「生成」按鈕產生QR Code</li>
+      <li>下載或列印QR Code張貼於醫院各處</li>
+      <li>訪客掃碼後自動開啟手部衛生PDF並記錄掃碼次數</li>
+      <li>統計數據儲存於瀏覽器本地，刷新頁面即可查看累積人數</li>
+    </ol>
+  </div>
+</div>
+
+<script>
+  let qrInstance = null;
+
+  function generateQR() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) { alert('請輸入網址'); return; }
+
+    // Clear old QR
+    document.getElementById('qrcode').innerHTML = '';
+    document.getElementById('printQR').innerHTML = '';
+
+    qrInstance = new QRCode(document.getElementById('qrcode'), {
+      text: url,
+      width: 220,
+      height: 220,
+      colorDark: '#006978',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+
+    // Also generate for print card
+    new QRCode(document.getElementById('printQR'), {
+      text: url,
+      width: 180,
+      height: 180,
+      colorDark: '#006978',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+
+    document.getElementById('qrLabel').textContent = url;
+    document.getElementById('qrArea').classList.add('visible');
+    document.getElementById('printCard').classList.add('visible');
+  }
+
+  function downloadQR() {
+    const canvas = document.querySelector('#qrcode canvas');
+    if (!canvas) { alert('請先生成QR Code'); return; }
+
+    // Add padding + label to downloaded image
+    const size = canvas.width;
+    const pad = 20;
+    const labelH = 36;
+    const out = document.createElement('canvas');
+    out.width  = size + pad * 2;
+    out.height = size + pad * 2 + labelH;
+    const ctx = out.getContext('2d');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(canvas, pad, pad);
+
+    ctx.fillStyle = '#006978';
+    ctx.font = 'bold 15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🙌 手部衛生 Hand Hygiene', out.width / 2, size + pad * 2 + 18);
+
+    const link = document.createElement('a');
+    link.download = 'hand-hygiene-qrcode.png';
+    link.href = out.toDataURL('image/png');
+    link.click();
+  }
